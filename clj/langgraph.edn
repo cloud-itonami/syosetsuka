@@ -1,0 +1,15 @@
+{:app "syosetsuka.gftd.ai"
+ :impl :clj
+ :graphs
+ {"ai.gftd.apps.syosetsuka.health" syosetsuka.graphs.registry/health
+  "ai.gftd.apps.syosetsuka.listWorks" syosetsuka.graphs.registry/list-works
+  "ai.gftd.apps.syosetsuka.getWork" syosetsuka.graphs.registry/get-work
+  "ai.gftd.apps.syosetsuka.listEpisodes" syosetsuka.graphs.registry/list-episodes
+  "ai.gftd.apps.syosetsuka.getEpisode" syosetsuka.graphs.registry/get-episode
+  "ai.gftd.apps.syosetsuka.listAuthors" syosetsuka.graphs.registry/list-authors
+  "ai.gftd.apps.syosetsuka.getAuthor" syosetsuka.graphs.registry/get-author
+  "ai.gftd.apps.syosetsuka.generateAuthor" syosetsuka.graphs.registry/generate-author
+  "ai.gftd.apps.syosetsuka.composeWork" syosetsuka.graphs.registry/compose-work
+  "ai.gftd.apps.syosetsuka.generateEpisode" syosetsuka.graphs.registry/generate-episode
+  "ai.gftd.apps.syosetsuka.continueSerialization" syosetsuka.graphs.registry/continue-serialization
+  "ai.gftd.apps.syosetsuka.produce" syosetsuka.graphs.registry/produce}}

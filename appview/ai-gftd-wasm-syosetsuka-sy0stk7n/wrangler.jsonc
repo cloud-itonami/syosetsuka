@@ -1,0 +1,39 @@
+{
+  "name": "magatama-sy0stk7n",
+  "main": "src/app.cljc",
+  "compatibility_date": "2025-03-17",
+  "compatibility_flags": ["nodejs_compat", "nodejs_als"],
+  "assets": {
+    "directory": "./svelte/build",
+    "binding": "ASSETS",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "single-page-application"
+  },
+  "vars": {
+    "APP_ACTOR_HANDLE": "syosetsuka",
+    "APP_CAPABILITIES": "[\"edge-assets\",\"bpmn-dispatch\"]",
+    "APP_DESCRIPTION": "Thin Cloudflare edge facade for Syosetsuka (AI web-novel platform). Author/work/episode generation runs in pod-side LangServer workers. Domain data persists to Cloudflare D1 (ai-gftd-syosetsuka) via /_d1; episode body text to B2 via /_blob.",
+    "APP_DISPLAY_NAME": "Syosetsuka",
+    "APP_FRAMEWORK": "ts-native",
+    "APP_NANOID": "sy0stk7n",
+    "APP_PERFORMER_TYPE": "service",
+    "APP_UI_TYPE": "appview"
+  },
+  // Domain data on Cloudflare D1 (kotoba Datomic → D1+B2, 2026-06-15). The pod
+  // posts to /_d1 (svelte/src/routes/_d1/+server.cljc) which binds SYOSETSUKA_DB.
+  // database_id: fill after `wrangler d1 create ai-gftd-syosetsuka`.
+  "d1_databases": [
+    { "binding": "SYOSETSUKA_DB", "database_name": "ai-gftd-syosetsuka", "database_id": "61d0f3f4-baa8-4c32-b3f9-05433a903b4d" }
+  ],
+  "services": [
+    { "binding": "PDS_SERVICE", "service": "ai-gftd-pds-2603241700" },
+    { "binding": "PDS_RPC", "service": "ai-gftd-pds-2603241700", "entrypoint": "PdsRPC" }
+  ],
+  "secrets_store_secrets": [
+    { "binding": "DISPATCHER_INTERNAL_SECRET", "store_id": "1824561668fe47cc9127d493961885af", "secret_name": "dispatcher_internal_secret" }
+  ],
+  "routes": [
+    { "pattern": "sy0stk7n.gftd.ai/*", "zone_name": "gftd.ai" },
+    { "pattern": "syosetsuka.gftd.ai/*", "zone_name": "gftd.ai" }
+  ]
+}

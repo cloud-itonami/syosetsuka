@@ -1,0 +1,3 @@
+{:tasks
+ {test {:doc "Run CLJ tests" :task (shell "clojure -M:test")}
+  server {:doc "Run the CLJ graph server" :task (shell "clojure -M:run")}}}

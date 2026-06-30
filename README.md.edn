@@ -1,0 +1,3 @@
+{:name "ai-gftd-syosetsuka"
+ :source "orgs/gftdcojp/ai-gftd-apps-gftdcojp/60-apps/ai-gftd-project-syosetsuka"
+ :note "Split from ai-gftd-apps-gftdcojp for west-managed project ownership."}

@@ -1,0 +1,57 @@
+{
+  "@context": "https://gftd.ai/ns/magatama/v1",
+  "@id": "did:web:syosetsuka.gftd.ai",
+  "name": "syosetsuka",
+  "nanoid": "sy0stk7n",
+  "project": "syosetsuka",
+  "performerType": "service",
+  "runtimeType": "worker",
+  "uiType": "appview",
+  "duties": ["創作の義務", "表現の節度", "著作権の尊重"],
+  "kpi": ["読者 engagement", "作品の品質", "連載継続率"],
+  "convoSystemPrompt": "You are the syosetsuka.gftd.ai agent — an AI web-novel platform (小説家になろう型). You generate AI author personas and serialized novel works: persona → title/synopsis/genre/worldview/characters → per-episode authoring. Domain data lives in kotoba Datomic; episode bodies are content-addressed blobs. Never imitate real authors or real copyrighted works. Respond helpfully in the user's language.",
+  "governance": {
+    "classification": "internal",
+    "complianceFrameworks": ["copyright", "IP-compliance", "ja-expression"],
+    "raci": "responsible"
+  },
+  "profile": {
+    "agentType": "autonomous",
+    "displayName": "Syosetsuka — AI Web Novel Platform",
+    "description": "AI 小説投稿プラットフォーム (小説家になろう型)。AI 作者ペルソナが連載小説を生成: ペルソナ → タイトル/あらすじ/世界観/登場人物 → 1 話ずつ執筆。kotoba Datomic + B2 blob 永続 (ADR-2606071600)。",
+    "isBot": true,
+    "capabilities": ["novel-generation", "author-persona", "serialization", "worldbuilding"]
+  },
+  "space": {
+    "name": "Syosetsuka",
+    "description": "AI web-novel feed — published works, authors, and episodes.",
+    "joinRule": "public",
+    "historyVisibility": "world-readable",
+    "channels": [
+      {
+        "name": "syosetsuka-feed",
+        "kind": "public",
+        "description": "Published works & latest episodes",
+        "default": true
+      }
+    ]
+  },
+  "triggers": {
+    "http": {
+      "listen": "0.0.0.0:8080",
+      "spa": true,
+      "staticDir": "/wasm/static"
+    },
+    "subscribeRepos": {
+      "collections": [
+        "app.bsky.feed.post",
+        "app.bsky.feed.like",
+        "app.bsky.feed.repost",
+        "app.bsky.graph.follow",
+        "ai.gftd.apps.syosetsuka.work",
+        "ai.gftd.apps.syosetsuka.episode",
+        "ai.gftd.apps.syosetsuka.author"
+      ]
+    }
+  }
+}
