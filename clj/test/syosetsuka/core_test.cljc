@@ -7,11 +7,11 @@
 (deftest registry-and-manifest
   (let [r (reg/build)
         manifest (edn/read-string (slurp "langgraph.edn"))]
-    (is (= 12 (count r)))
+    (is (= 13 (count r)))
     (is (= (set (keys r)) (set (keys (:graphs manifest)))))
     (doseq [id ["health" "list_works" "get_work" "list_episodes" "get_episode"
                 "list_authors" "get_author" "generate_author" "compose_work"
-                "generate_episode" "continue_serialization" "produce"]]
+                "generate_episode" "continue_serialization" "produce" "verify_store"]]
       (is (reg/resolve-entry r id)))))
 
 (deftest edn-helpers

@@ -1,0 +1,142 @@
+(ns syosetsuka.graphs.verify-store
+  "Durable store verification graph — the kotoba sovereign ゲート (CLAUDE.md
+  §7, ADR-2606071600 §7). kotoba には本番ロールバック先例がある
+  (shinshi/yukkuri が kotoba→RW/D1) ため、sovereign 宣言の前にこの graph で
+  transact→pull/q round-trip と multi-value `:nv/tag` fidelity を WARM pod
+  に対して実測する。
+
+  The probe writes a synthetic author/work/episode using the
+  kotoba-lang/shousetsu vocabulary (ADR-2607023000) and verifies:
+
+    :transact          — ops accepted
+    :pull-roundtrip    — title/status/author come back intact via pull
+    :tag-fidelity-pull — multi-value :nv/tag survives with full cardinality
+    :tag-fidelity-q    — the same set via the query path
+    :body-as-blob      — :ep/bodyBlobKey present, :ep/body absent
+
+  The store api is injected ({:label :transact! :pull :q-values}):
+  `mem-api` (default — deterministic, CI-safe, no network) or
+  `syosetsuka.store.kotoba/api` (input {:store \"kotoba\"}, JVM +
+  KOTOBA_XRPC_URL/KOTOBA_URL configured — the WARM pod run)."
+  (:require [shousetsu.serialization :as serialization]
+            [syosetsuka.store.kotoba :as kotoba]))
+
+;; ───────────────────────── in-memory api ─────────────────────────
+
+(defn mem-api
+  "Deterministic in-memory datom store implementing the verify surface."
+  []
+  (let [datoms (atom [])]
+    {:label "mem"
+     :transact!
+     (fn [ops]
+       (swap! datoms into (keep (fn [[op e a v]] (when (= :db/add op) [e a v])) ops))
+       {:ok true})
+     :pull
+     (fn [eid]
+       (let [es (filterv #(= eid (first %)) @datoms)]
+         (when (seq es)
+           (reduce (fn [m [_ a v]]
+                     (update m a (fn [cur]
+                                   (cond
+                                     (nil? cur) v
+                                     (vector? cur) (conj cur v)
+                                     :else [cur v]))))
+                   {} es))))
+     :q-values
+     (fn [eid attr]
+       (mapv peek (filterv #(and (= eid (first %)) (= attr (second %))) @datoms)))}))
+
+;; ───────────────────────── checks ─────────────────────────
+
+(defn- as-value-set [v]
+  (cond (nil? v) #{} (coll? v) (set v) :else #{v}))
+
+(defn run-checks
+  "Run the §7 verification against a store api. Pure w.r.t. everything but
+  the injected api. Returns {:ok? bool :store label :checks [...]}."
+  [api {:keys [probe-slug tags]
+        :or {probe-slug "sovereign-probe" tags ["異世界" "内政" "図書館"]}}]
+  (let [author-id (serialization/author-id (str "verify-" probe-slug))
+        work-id (serialization/work-id probe-slug)
+        episode-id (serialization/episode-id probe-slug 1)
+        ops (vec (concat
+                  (serialization/author->ops {:author_id author-id
+                                              :pen_name "検証作者"
+                                              :genre_affinity "検証"})
+                  (serialization/work->ops {:work_id work-id
+                                            :title "Sovereign Probe"
+                                            :author_id author-id
+                                            :status "serializing"
+                                            :tags tags})
+                  (serialization/episode-meta->ops {:episode_id episode-id
+                                                    :work_id work-id
+                                                    :index 1
+                                                    :title "第一話"
+                                                    :body_blob_key "probe-blob"
+                                                    :char_count 42
+                                                    :status "published"})))
+        _ ((:transact! api) ops)
+        work ((:pull api) work-id)
+        episode ((:pull api) episode-id)
+        pull-tags (as-value-set (:nv/tag work))
+        q-tags ((:q-values api) work-id :nv/tag)
+        checks
+        [{:check :transact :ok true :ops (count ops)}
+         {:check :pull-roundtrip
+          :ok (and (= "Sovereign Probe" (:nv/title work))
+                   (= author-id (:nv/author work))
+                   (= "serializing" (:nv/status work)))
+          :work work}
+         {:check :tag-fidelity-pull
+          :ok (and (= (set tags) pull-tags)
+                   (= (count tags) (count pull-tags)))
+          :expected (vec tags) :actual (vec pull-tags)}
+         {:check :tag-fidelity-q
+          :ok (and (= (set tags) (set q-tags))
+                   (= (count tags) (count q-tags)))
+          :expected (vec tags) :actual (vec q-tags)}
+         {:check :body-as-blob
+          :ok (and (= "probe-blob" (:ep/bodyBlobKey episode))
+                   (nil? (:ep/body episode)))}]]
+    {:ok? (every? :ok checks)
+     :store (:label api)
+     :checks checks}))
+
+;; ───────────────────────── graph handler ─────────────────────────
+
+(defn- input-value [m & ks] (some #(get m %) ks))
+
+(defn handler
+  "Graph handler for ai.gftd.apps.syosetsuka.verifyStore.
+
+  input:
+    :store       \"mem\" (default — deterministic, no network) or
+                 \"kotoba\" (WARM pod run; requires KOTOBA_XRPC_URL/KOTOBA_URL)
+    :probe_slug  unique probe entity slug (durable stores need a fresh one
+                 per run; default \"sovereign-probe\")
+
+  Sovereign 宣言の判定材料は {:store \"kotoba\"} での :ok true のみ。mem は
+  gate 自体の regression 検知用。"
+  [input _thread-id]
+  (let [store (or (input-value input :store "store") "mem")
+        probe-slug (input-value input :probe_slug :probe-slug "probe_slug")]
+    (try
+      (let [api (case store
+                  "mem" (mem-api)
+                  "kotoba" (if (kotoba/configured?)
+                             (kotoba/api)
+                             (throw (ex-info "kotoba store not configured (set KOTOBA_XRPC_URL / KOTOBA_URL)"
+                                             {:store store})))
+                  (throw (ex-info (str "unknown store: " store) {:store store})))
+            result (run-checks api (cond-> {}
+                                     probe-slug (assoc :probe-slug probe-slug)))]
+        (merge {:ok (:ok? result)
+                :store (:store result)
+                :checks (mapv #(dissoc % :work) (:checks result))
+                :sovereign_ready (and (:ok? result) (= "kotoba" (:store result)))}
+               (when (= "mem" store)
+                 {:note "mem run — sovereign 判定は {:store \"kotoba\"} での WARM pod 実測のみ"})))
+      (catch #?(:clj Exception :cljs :default) e
+        {:ok false :store store :error (str #?(:clj (.getMessage ^Exception e)
+                                               :cljs e))}))))

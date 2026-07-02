@@ -18,7 +18,7 @@
   (let [ok (json-body (req :get "/ok"))]
     (is (= 200 (:status (req :get "/ok"))))
     (is (= true (:ok ok)))
-    (is (= 12 (count (:graphs ok)))))
+    (is (= 13 (count (:graphs ok)))))
   (is (= true (:ok (json-body (req :get "/health"))))))
 
 (deftest runs-and-xrpc

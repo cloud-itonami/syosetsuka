@@ -12,4 +12,5 @@
   "ai.gftd.apps.syosetsuka.composeWork" syosetsuka.graphs.registry/compose-work
   "ai.gftd.apps.syosetsuka.generateEpisode" syosetsuka.graphs.registry/generate-episode
   "ai.gftd.apps.syosetsuka.continueSerialization" syosetsuka.graphs.registry/continue-serialization
-  "ai.gftd.apps.syosetsuka.produce" syosetsuka.graphs.registry/produce}}
+  "ai.gftd.apps.syosetsuka.produce" syosetsuka.graphs.registry/produce
+  "ai.gftd.apps.syosetsuka.verifyStore" syosetsuka.graphs.verify-store/handler}}

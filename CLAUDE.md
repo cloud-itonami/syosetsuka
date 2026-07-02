@@ -33,7 +33,7 @@ syosetsuka.gftd.ai — AI が「作者ペルソナ」と「作品(連載小説)�
 
 関係は ref datom (`:nv/author` → author / `:ep/work` → work …)。**本文・glossary 等の長文は datom に入れず B2 blob** (kotoba 書き込み肥大回避、ADR §3.4)。
 
-## XRPC / Graph Surface (12 graphs)
+## XRPC / Graph Surface (13 graphs)
 
 | NSID | assistant_id | type |
 |---|---|---|
@@ -46,6 +46,7 @@ syosetsuka.gftd.ai — AI が「作者ペルソナ」と「作品(連載小説)�
 | `ai.gftd.apps.syosetsuka.generateEpisode` | generate_episode | procedure (agentTool) |
 | `ai.gftd.apps.syosetsuka.continueSerialization` | continue_serialization | procedure (agentTool) |
 | `ai.gftd.apps.syosetsuka.produce` | produce | procedure (agentTool) |
+| `ai.gftd.apps.syosetsuka.verifyStore` | verify_store | procedure (§7 sovereign gate) |
 
 ## Architecture Flow (8-Layer)
 
@@ -64,8 +65,18 @@ deterministic scaffold and does not call kotoba/D1, B2, or an LLM in-process.
 
 kotoba は本番でロールバック先例あり (shinshi/yukkuri が kotoba→RW/D1)。sovereign 宣言の前に
 CLJ runtime 側へ durable store verification graph を追加し、transact→pull/q round-trip +
-multi-value `:nv/tag` fidelity を WARM pod で検証する。`90-docs/MIGRATION-rw-to-kotoba-sovereign.md`
-に syosetsuka エントリ追加 (未)。
+multi-value `:nv/tag` fidelity を WARM pod で検証する。
+
+**Gate 実装済み (2026-07-02)**: `ai.gftd.apps.syosetsuka.verifyStore`
+(`syosetsuka.graphs.verify-store`) — probe は shousetsu 語彙の author/work/episode、
+checks = :transact / :pull-roundtrip / :tag-fidelity-pull / :tag-fidelity-q /
+:body-as-blob。既定 `{:store "mem"}`（決定的・CI 安全、`:sovereign_ready` は常に
+false）。**sovereign 判定は `{:store "kotoba", :probe_slug <fresh>}` を WARM pod
+に対して実行し `:sovereign_ready true` を得ることのみ**（KOTOBA_XRPC_URL /
+KOTOBA_BEARER / KOTOBA_GRAPH。client は `syosetsuka.store.kotoba`、transport 注入
+可）。未設定 kotoba 指定は fail-closed。`90-docs/MIGRATION-rw-to-kotoba-sovereign.md`
+に syosetsuka エントリ追加済み — WARM pod 実測と sovereign 宣言は pod deploy 後の
+operator 手順。
 
 ## Layout
 
@@ -75,7 +86,7 @@ multi-value `:nv/tag` fidelity を WARM pod で検証する。`90-docs/MIGRATION
 ├── clj/                                 # CLJ graph server pod
 │   ├── langgraph.edn / deps.edn / Dockerfile
 │   ├── src/syosetsuka/{server,edn}.cljc*
-│   ├── src/syosetsuka/graphs/registry.cljc  # 12 graphs
+│   ├── src/syosetsuka/graphs/registry.cljc  # 13 graphs
 │   └── test/syosetsuka/*_test.cljc
 └── appview/ai-gftd-wasm-syosetsuka-sy0stk7n/
     └── magatama.jsonld                  # appview edge proxy (svelte UI = follow-up)
