@@ -2,50 +2,60 @@
   "Durable store verification graph — the kotoba sovereign ゲート (CLAUDE.md
   §7, ADR-2606071600 §7). kotoba には本番ロールバック先例がある
   (shinshi/yukkuri が kotoba→RW/D1) ため、sovereign 宣言の前にこの graph で
-  transact→pull/q round-trip と multi-value `:nv/tag` fidelity を WARM pod
-  に対して実測する。
+  transact→pull/q round-trip と multi-value `:nv/tag` fidelity を kotoba
+  storage substrate に対して実測する。実測先は **kotobase.net の tenant
+  Datom plane**（ADR-2607022300: kotoba=storage / murakumo=compute /
+  aozora=publish。k8s の lg-* pod は prune 済み）で、認証は actor 自身の
+  Ed25519 鍵による CACAO 自己発行（syosetsuka.store.kotoba）。
 
   The probe writes a synthetic author/work/episode using the
   kotoba-lang/shousetsu vocabulary (ADR-2607023000) and verifies:
 
     :transact          — ops accepted
-    :pull-roundtrip    — title/status/author come back intact via pull
+    :pull-roundtrip    — title/status/author come back intact (entity lookup
+                         by unique id attr → pull)
     :tag-fidelity-pull — multi-value :nv/tag survives with full cardinality
     :tag-fidelity-q    — the same set via the query path
     :body-as-blob      — :ep/bodyBlobKey present, :ep/body absent
 
-  The store api is injected ({:label :transact! :pull :q-values}):
+  The store api is injected ({:label :transact! :entity :values}):
   `mem-api` (default — deterministic, CI-safe, no network) or
-  `syosetsuka.store.kotoba/api` (input {:store \"kotoba\"}, JVM +
-  KOTOBA_XRPC_URL/KOTOBA_URL configured — the WARM pod run)."
+  `syosetsuka.store.kotoba/api` (input {:store \"kotoba\"}, JVM — the
+  kotobase.net live run)."
   (:require [shousetsu.serialization :as serialization]
             [syosetsuka.store.kotoba :as kotoba]))
 
 ;; ───────────────────────── in-memory api ─────────────────────────
 
 (defn mem-api
-  "Deterministic in-memory datom store implementing the verify surface."
+  "Deterministic in-memory datom store implementing the verify surface.
+  Entities are located the same way as on a real store: by unique id attr
+  value, never by assuming tempid strings survive as entity ids."
   []
   (let [datoms (atom [])]
-    {:label "mem"
-     :transact!
-     (fn [ops]
-       (swap! datoms into (keep (fn [[op e a v]] (when (= :db/add op) [e a v])) ops))
-       {:ok true})
-     :pull
-     (fn [eid]
-       (let [es (filterv #(= eid (first %)) @datoms)]
-         (when (seq es)
+    (letfn [(eid-of [id-attr id-value]
+              (some (fn [[e a v]] (when (and (= a id-attr) (= v id-value)) e))
+                    @datoms))]
+      {:label "mem"
+       :transact!
+       (fn [ops]
+         (swap! datoms into (keep (fn [[op e a v]] (when (= :db/add op) [e a v])) ops))
+         {:ok true})
+       :entity
+       (fn [id-attr id-value]
+         (when-let [e (eid-of id-attr id-value)]
            (reduce (fn [m [_ a v]]
                      (update m a (fn [cur]
                                    (cond
                                      (nil? cur) v
                                      (vector? cur) (conj cur v)
                                      :else [cur v]))))
-                   {} es))))
-     :q-values
-     (fn [eid attr]
-       (mapv peek (filterv #(and (= eid (first %)) (= attr (second %))) @datoms)))}))
+                   {}
+                   (filterv #(= e (first %)) @datoms))))
+       :values
+       (fn [id-attr id-value attr]
+         (when-let [e (eid-of id-attr id-value)]
+           (mapv peek (filterv #(and (= e (first %)) (= attr (second %))) @datoms))))})))
 
 ;; ───────────────────────── checks ─────────────────────────
 
@@ -53,8 +63,8 @@
   (cond (nil? v) #{} (coll? v) (set v) :else #{v}))
 
 (defn run-checks
-  "Run the §7 verification against a store api. Pure w.r.t. everything but
-  the injected api. Returns {:ok? bool :store label :checks [...]}."
+  "Run the §7 verification against a store api. Returns
+  {:ok? bool :store label :checks [...]}."
   [api {:keys [probe-slug tags]
         :or {probe-slug "sovereign-probe" tags ["異世界" "内政" "図書館"]}}]
   (let [author-id (serialization/author-id (str "verify-" probe-slug))
@@ -77,10 +87,10 @@
                                                     :char_count 42
                                                     :status "published"})))
         _ ((:transact! api) ops)
-        work ((:pull api) work-id)
-        episode ((:pull api) episode-id)
+        work ((:entity api) :nv/id work-id)
+        episode ((:entity api) :ep/id episode-id)
         pull-tags (as-value-set (:nv/tag work))
-        q-tags ((:q-values api) work-id :nv/tag)
+        q-tags ((:values api) :nv/id work-id :nv/tag)
         checks
         [{:check :transact :ok true :ops (count ops)}
          {:check :pull-roundtrip
@@ -112,7 +122,8 @@
 
   input:
     :store       \"mem\" (default — deterministic, no network) or
-                 \"kotoba\" (WARM pod run; requires KOTOBA_XRPC_URL/KOTOBA_URL)
+                 \"kotoba\" (kotobase.net tenant plane live run; CACAO
+                 self-issued from .syosetsuka/identity.edn)
     :probe_slug  unique probe entity slug (durable stores need a fresh one
                  per run; default \"sovereign-probe\")
 
@@ -124,10 +135,8 @@
     (try
       (let [api (case store
                   "mem" (mem-api)
-                  "kotoba" (if (kotoba/configured?)
-                             (kotoba/api)
-                             (throw (ex-info "kotoba store not configured (set KOTOBA_XRPC_URL / KOTOBA_URL)"
-                                             {:store store})))
+                  "kotoba" #?(:clj (kotoba/api)
+                              :cljs (throw (ex-info "kotoba store run is JVM-only" {})))
                   (throw (ex-info (str "unknown store: " store) {:store store})))
             result (run-checks api (cond-> {}
                                      probe-slug (assoc :probe-slug probe-slug)))]
@@ -135,8 +144,10 @@
                 :store (:store result)
                 :checks (mapv #(dissoc % :work) (:checks result))
                 :sovereign_ready (and (:ok? result) (= "kotoba" (:store result)))}
+               (when (= "kotoba" store)
+                 {:did (:did api) :graph (:graph api) :db_name (:db-name api)})
                (when (= "mem" store)
-                 {:note "mem run — sovereign 判定は {:store \"kotoba\"} での WARM pod 実測のみ"})))
+                 {:note "mem run — sovereign 判定は {:store \"kotoba\"} での kotobase.net 実測のみ"})))
       (catch #?(:clj Exception :cljs :default) e
         {:ok false :store store :error (str #?(:clj (.getMessage ^Exception e)
                                                :cljs e))}))))

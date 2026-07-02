@@ -1,90 +1,101 @@
 (ns syosetsuka.store.kotoba
-  "kotoba-datomic backend over XRPC — JVM-only, transport-injected.
+  "kotobase.net tenant Datom plane client — the kotoba STORAGE substrate
+  (ADR-2607022300: kotoba=storage / murakumo=compute / aozora=publish;
+  k8s の lg-* pod は prune 済み).
 
-  Mirrors the sibling mangaka.store.kotoba client shape (ADR-2606071600):
+  Auth is CACAO self-issued (CLAUDE.md Actors section): the actor loads or
+  creates its own Ed25519 identity (.syosetsuka/identity.edn, gitignored)
+  and mints per-op CACAOs via syosetsuka.cacao — datom:transact+tx:create
+  for writes, datom:read for reads. Its writable namespace is
+  `kotobase/db/<actor-did>/<db-name>`; the wire goes through
+  langchain.kotoba-db (kotoba-lang/langchain), which encodes the live edge
+  empirics: writes send `db_name` (edge derives + pins the canonical graph
+  from the CACAO's DID), reads send the precomputed canonical graph CID.
 
-    - endpoint  KOTOBA_XRPC_URL / KOTOBA_URL (default in-cluster kotoba svc)
-    - nsid      KOTOBA_DATOMIC_NSID (default ai.gftd.apps.kotobase.datomic,
-                repos.edn :kotoba :xrpc)
-    - graph     KOTOBA_GRAPH (default kotobase-kg-v1, CLAUDE.md Domain Model)
-    - auth      Bearer (KOTOBA_BEARER); the edge BFF is the trust boundary
-    - transact  POST {nsid}.transact {graph, tx_edn}
-    - q         POST {nsid}.q        {graph, query_edn}   → {rows_edn}
-    - pull      POST {nsid}.pull     {graph, entity, pattern_edn} → {entity_edn}
+  Env:
+    KOTOBA_URL           endpoint (default https://kotobase.net)
+    KOTOBA_DB_NAME       tenant db (default syosetsuka-verify)
+    KOTOBA_OPERATOR_DID  CACAO aud (default did:web:kotobase.net)
+    KOTOBA_IDENTITY      identity path (default .syosetsuka/identity.edn)
 
-  The transport (`post-fn`) is injected, so a fake kotoba server can drive
-  the full api in tests; `api` returns the minimal store surface that
-  syosetsuka.graphs.verify-store (the §7 sovereign gate) exercises."
-  (:require [clojure.edn :as edn]
-            [clojure.string :as str]
-            #?@(:clj [[org.httpkit.client :as http]
-                      [jsonista.core :as j]])))
+  The transport (:http-fn) is injected so a fake edge can drive the full
+  client in tests; `api` returns the verify-store surface
+  {:label :transact! :entity :values}."
+  (:require [langchain.kotoba-db :as kdb]
+            #?@(:clj [[jsonista.core :as j]
+                      [org.httpkit.client :as http]
+                      [syosetsuka.cacao :as cacao]])))
 
 (defn- env [k] #?(:clj (System/getenv k) :cljs nil))
 
-(defn configured?
-  "True when a kotoba endpoint is configured in the environment."
-  []
-  (boolean (or (env "KOTOBA_XRPC_URL") (env "KOTOBA_URL"))))
-
-(defn- nsid []
-  (or (env "KOTOBA_DATOMIC_NSID") "ai.gftd.apps.kotobase.datomic"))
-
-(defn- endpoint []
-  (str/replace (or (env "KOTOBA_XRPC_URL")
-                   (env "KOTOBA_URL")
-                   "http://kotoba.kotoba.svc.cluster.local:8080")
-               #"/+$" ""))
+(defn config []
+  {:url (or (env "KOTOBA_URL") "https://kotobase.net")
+   :db-name (or (env "KOTOBA_DB_NAME") "syosetsuka-verify")
+   :operator-did (or (env "KOTOBA_OPERATOR_DID") "did:web:kotobase.net")
+   :identity-path (or (env "KOTOBA_IDENTITY") ".syosetsuka/identity.edn")})
 
 #?(:clj
-   (defn- headers []
-     (let [tok (env "KOTOBA_BEARER")]
-       (cond-> {"content-type" "application/json"}
-         tok (assoc "authorization" (str "Bearer " tok))))))
-
-#?(:clj
-   (defn http-post!
-     "Default transport: POST {endpoint}/xrpc/{nsid}.{method} with a JSON
-     body, returns the decoded JSON response (keyword keys). Throws on
-     transport or non-2xx errors."
-     [method body]
+   (defn http-fn
+     "Default transport (http-kit)."
+     [{:keys [url method headers body]}]
      (let [{:keys [status body error]}
-           @(http/post (str (endpoint) "/xrpc/" (nsid) "." method)
-                       {:headers (headers) :body (j/write-value-as-string body)})]
+           @(http/request {:url url
+                           :method (or method :post)
+                           :headers headers
+                           :body body})]
        (when error
-         (throw (ex-info "kotoba XRPC transport error" {:method method :error error})))
-       (when-not (<= 200 status 299)
-         (throw (ex-info "kotoba XRPC error" {:method method :status status :body body})))
-       (j/read-value body j/keyword-keys-object-mapper))))
+         (throw (ex-info "kotoba transport error" {:url url :error error})))
+       {:status status :body body})))
 
-(defn api
-  "The minimal store surface the verify-store gate exercises:
-  {:label :transact! :pull :q-values}. `post-fn` defaults to `http-post!`
-  (JVM); inject a fake for tests."
-  ([] (api {}))
-  ([{:keys [post-fn graph]}]
-   (let [post-fn (or post-fn #?(:clj http-post! :cljs nil))
-         graph (or graph (env "KOTOBA_GRAPH") "kotobase-kg-v1")]
-     (when-not post-fn
-       (throw (ex-info "kotoba api needs a post-fn on this platform" {})))
-     {:label "kotoba"
-      :transact!
-      (fn [ops]
-        (post-fn "transact" {:graph graph :tx_edn (pr-str (vec ops))}))
-      :pull
-      (fn [eid]
-        (let [{:keys [entity_edn entity]}
-              (post-fn "pull" {:graph graph
-                               :entity (pr-str eid)
-                               :pattern_edn (pr-str '[*])})]
-          (some-> (or entity_edn entity)
-                  (#(if (string? %) (edn/read-string %) %)))))
-      :q-values
-      (fn [eid attr]
-        (let [{:keys [rows_edn rows]}
-              (post-fn "q" {:graph graph
-                            :query_edn (pr-str [:find '?v :where [eid attr '?v]])})]
-          (cond
-            rows_edn (mapv (comp edn/read-string first) rows_edn)
-            rows (mapv first rows)
-            :else [])))})))
+#?(:clj
+   (defn- host-caps [http-fn*]
+     {:http-fn (or http-fn* http-fn)
+      :json-write j/write-value-as-string
+      :json-read #(j/read-value % j/keyword-keys-object-mapper)}))
+
+#?(:clj
+   (defn api
+     "Build the verify-store api surface against the kotobase.net tenant
+     plane. opts (all optional; tests inject :http-fn and :identity):
+       :http-fn :identity :url :db-name :operator-did :now :nonce"
+     ([] (api {}))
+     ([{:keys [http-fn identity url db-name operator-did now nonce]}]
+      (let [cfg (config)
+            url (or url (:url cfg))
+            db-name (or db-name (:db-name cfg))
+            operator-did (or operator-did (:operator-did cfg))
+            identity (or identity (cacao/load-or-create-identity! (:identity-path cfg)))
+            graph (cacao/canonical-graph (:did identity) db-name)
+            mint (fn [capability extra]
+                   (:cacao-b64 (cacao/mint-cacao
+                                (cond-> {:identity identity
+                                         :aud operator-did
+                                         :capability capability
+                                         :extra-capabilities extra
+                                         :graph graph}
+                                  now (assoc :now now)
+                                  nonce (assoc :nonce nonce)))))
+            caps (host-caps http-fn)
+            kapi (kdb/kotoba-api caps)
+            conn (fn [cacao-b64]
+                   (kdb/kotoba-conn* url db-name {:graph graph
+                                                  :cacao cacao-b64
+                                                  :did (:did identity)}))
+            wconn (conn (mint "datom:transact" ["tx:create"]))
+            rconn (conn (mint "datom:read" []))]
+        {:label "kotoba"
+         :did (:did identity)
+         :graph graph
+         :db-name db-name
+         :transact!
+         (fn [ops] ((:transact! kapi) wconn ops))
+         :entity
+         (fn [id-attr id-value]
+           (when-let [eid ((:q kapi) [:find '?e '. :where ['?e id-attr id-value]]
+                           rconn)]
+             ((:pull kapi) rconn '[*] eid)))
+         :values
+         (fn [id-attr id-value attr]
+           (vec ((:q kapi) [:find '[?v ...]
+                            :where ['?e id-attr id-value] ['?e attr '?v]]
+                 rconn)))}))))

@@ -64,19 +64,30 @@ deterministic scaffold and does not call kotoba/D1, B2, or an LLM in-process.
 ## kotoba sovereign ゲート (CRITICAL — ADR §7)
 
 kotoba は本番でロールバック先例あり (shinshi/yukkuri が kotoba→RW/D1)。sovereign 宣言の前に
-CLJ runtime 側へ durable store verification graph を追加し、transact→pull/q round-trip +
-multi-value `:nv/tag` fidelity を WARM pod で検証する。
+CLJ runtime 側の durable store verification graph で transact→pull/q round-trip +
+multi-value `:nv/tag` fidelity を kotoba storage substrate に対して実測する。
+**k8s の lg-* pod は prune 済み** — 実測先は kotobase.net の tenant Datom plane
+（ADR-2607022300: kotoba=storage / murakumo=compute / aozora=publish）。
 
 **Gate 実装済み (2026-07-02)**: `ai.gftd.apps.syosetsuka.verifyStore`
 (`syosetsuka.graphs.verify-store`) — probe は shousetsu 語彙の author/work/episode、
 checks = :transact / :pull-roundtrip / :tag-fidelity-pull / :tag-fidelity-q /
 :body-as-blob。既定 `{:store "mem"}`（決定的・CI 安全、`:sovereign_ready` は常に
-false）。**sovereign 判定は `{:store "kotoba", :probe_slug <fresh>}` を WARM pod
-に対して実行し `:sovereign_ready true` を得ることのみ**（KOTOBA_XRPC_URL /
-KOTOBA_BEARER / KOTOBA_GRAPH。client は `syosetsuka.store.kotoba`、transport 注入
-可）。未設定 kotoba 指定は fail-closed。`90-docs/MIGRATION-rw-to-kotoba-sovereign.md`
-に syosetsuka エントリ追加済み — WARM pod 実測と sovereign 宣言は pod deploy 後の
-operator 手順。
+false）。**sovereign 判定は `{:store "kotoba", :probe_slug <fresh>}` を
+kotobase.net に対して実行し `:sovereign_ready true` を得ることのみ。**
+認証は actor 自身の Ed25519 鍵での CACAO 自己発行（`syosetsuka.cacao`、caip122 +
+`kotoba://can/*` 方言、鍵は `.syosetsuka/identity.edn` = gitignore）。書込は
+`kotobase/db/<actor-did>/<db-name>` の自 tenant（db_name + CACAO）、読みは
+canonical graph CID — client は `syosetsuka.store.kotoba`
+（langchain.kotoba-db 経由、transport 注入可）。live 実測（production への
+書込を伴う）は owner 実行:
+
+```bash
+cd clj && clojure -M -e '(require (quote [syosetsuka.graphs.verify-store :as vs])) (prn (vs/handler {:store "kotoba" :probe_slug (str "verify-" (System/currentTimeMillis))} nil))'
+```
+
+`90-docs/MIGRATION-rw-to-kotoba-sovereign.md` に syosetsuka エントリ追加済み —
+`:sovereign_ready true` の evidence を得たら台帳に記録して sovereign 宣言する。
 
 ## Layout
 

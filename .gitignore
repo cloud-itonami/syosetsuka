@@ -37,3 +37,7 @@ venv/
 *.log
 coverage/
 test-results/
+
+# actor identity (CACAO Ed25519 key) — NEVER commit
+.syosetsuka/
+clj/.syosetsuka/
