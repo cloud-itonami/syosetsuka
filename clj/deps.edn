@@ -4,6 +4,9 @@
         ;; vocabulary split out of this repo's old syosetsuka.edn.
         io.github.kotoba-lang/shousetsu {:git/url "https://github.com/kotoba-lang/shousetsu"
                                          :git/sha "179985f5c755218ce4a6b1e4a5e08f76f207ee05"}
+        ;; kotoba-db (kotobase.net tenant Datom plane client) — §7 sovereign
+        ;; gate の kotoba 実測経路 (ADR-2607022300 kotoba=storage)。
+        io.github.kotoba-lang/langchain {:git/sha "c7943d7542f28242a654ff3e0c37100b48a9417d"}
         http-kit/http-kit   {:mvn/version "2.8.0"}
         metosin/reitit-ring {:mvn/version "0.7.2"}
         ring/ring-core      {:mvn/version "1.12.2"}
@@ -12,7 +15,8 @@
  {;; Workspace development — use the local lib checkout (no git fetch).
   :dev
   {:override-deps
-   {io.github.kotoba-lang/shousetsu {:local/root "../../../kotoba-lang/shousetsu"}}}
+   {io.github.kotoba-lang/shousetsu {:local/root "../../../kotoba-lang/shousetsu"}
+    io.github.kotoba-lang/langchain  {:local/root "../../../kotoba-lang/langchain"}}}
 
   :run {:main-opts ["-m" "syosetsuka.server"]}
   :test {:extra-paths ["test"]
