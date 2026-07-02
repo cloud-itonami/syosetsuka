@@ -20,8 +20,8 @@
 
   The store api is injected ({:label :transact! :entity :values}):
   `mem-api` (default — deterministic, CI-safe, no network) or
-  `syosetsuka.store.kotoba/api` (input {:store \"kotoba\"}, JVM — the
-  kotobase.net live run)."
+  `syosetsuka.store.kotoba/api` (input {:store \"kotoba\"} — the kotobase.net
+  live run。純 cljc: JVM は即動作、他 host は http-fn/identity を注入)."
   (:require [shousetsu.serialization :as serialization]
             [syosetsuka.store.kotoba :as kotoba]))
 
@@ -135,8 +135,7 @@
     (try
       (let [api (case store
                   "mem" (mem-api)
-                  "kotoba" #?(:clj (kotoba/api)
-                              :cljs (throw (ex-info "kotoba store run is JVM-only" {})))
+                  "kotoba" (kotoba/api)
                   (throw (ex-info (str "unknown store: " store) {:store store})))
             result (run-checks api (cond-> {}
                                      probe-slug (assoc :probe-slug probe-slug)))]

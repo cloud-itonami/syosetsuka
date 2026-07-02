@@ -79,7 +79,10 @@ kotobase.net に対して実行し `:sovereign_ready true` を得ることのみ
 `kotoba://can/*` 方言、鍵は `.syosetsuka/identity.edn` = gitignore）。書込は
 `kotobase/db/<actor-did>/<db-name>` の自 tenant（db_name + CACAO）、読みは
 canonical graph CID — client は `syosetsuka.store.kotoba`
-（langchain.kotoba-db 経由、transport 注入可）。live 実測（production への
+（langchain.kotoba-db 経由、transport 注入可）。**cacao/client/gate は純 cljc**
+（bytes = int vector、SHA-256 は host-crypto-free の sha256d-clj、Ed25519 署名
+だけ identity の `:sign-fn` として注入 — JVM は JDK 既定、cljs/SCI/WASM host は
+`identity-from-signer` + `set-default-opts!` で注入。JVM/babashka で実測済み）。live 実測（production への
 書込を伴う）は owner 実行:
 
 ```bash
