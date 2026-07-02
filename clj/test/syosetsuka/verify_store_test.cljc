@@ -71,7 +71,7 @@
                                                        :extra-capabilities ["tx:create"]
                                                        :graph graph
                                                        :nonce "fixednonce123456"
-                                                       :now (java.time.Instant/parse "2026-07-02T00:00:00Z")})
+                                                       :now-iso "2026-07-02T00:00:00Z"})
             raw (String. (.decode (java.util.Base64/getDecoder) ^String cacao-b64) "ISO-8859-1")]
         (is (= (:did id) did))
         (is (str/includes? raw "caip122"))
@@ -79,6 +79,32 @@
         (is (str/includes? raw "kotoba://can/tx:create"))
         (is (str/includes? raw (str "kotoba://graph/" graph)))
         (is (str/includes? raw "kotobase.net"))))))
+
+;; ───────── portability: minting needs NO host crypto ─────────
+
+(deftest pure-mint-without-host-crypto
+  ;; identity-from-signer + a fake signer: the whole mint path (SIWE,
+  ;; DAG-CBOR, base58/base32, canonical-graph CID via sha256d) is pure cljc —
+  ;; the only host capability is the injected Ed25519 :sign-fn.
+  (let [pub-raw (vec (repeat 32 7))
+        captured (atom nil)
+        id (cacao/identity-from-signer
+            pub-raw
+            (fn [msg-bytes] (reset! captured msg-bytes) (vec (range 64))))
+        graph (cacao/canonical-graph (:did id) "syosetsuka-verify")
+        {:keys [cacao-b64 did]} (cacao/mint-cacao {:identity id
+                                                   :aud "did:web:kotobase.net"
+                                                   :capability "datom:read"
+                                                   :graph graph
+                                                   :nonce "fixednonce123456"
+                                                   :now-iso "2026-07-02T00:00:00Z"})]
+    (is (str/starts-with? did "did:key:z"))
+    (is (string? cacao-b64))
+    (testing "the signer received the SIWE message bytes"
+      (is (vector? @captured))
+      (is (str/starts-with?
+           (apply str (map char @captured))
+           "kotobase.net wants you to sign in with your Ethereum account:")))))
 
 ;; ───────── kotoba client wire (fake edge) ─────────
 
