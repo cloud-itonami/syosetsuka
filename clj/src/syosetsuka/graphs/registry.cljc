@@ -1,11 +1,12 @@
 (ns syosetsuka.graphs.registry
   (:require [clojure.string :as str]
-            [syosetsuka.edn :as se]))
+            [syosetsuka.edn :as se]
+            [syosetsuka.graphs.verify-store :as verify-store]))
 
 (def graph-names
   ["health" "list_works" "get_work" "list_episodes" "get_episode"
    "list_authors" "get_author" "generate_author" "compose_work"
-   "generate_episode" "continue_serialization" "produce"])
+   "generate_episode" "continue_serialization" "produce" "verify_store"])
 
 (defn- input-value [m & ks] (some #(get m %) ks))
 (defn- req [m ks msg] (if (some #(seq (str (get m %))) ks) nil {:error msg}))
@@ -116,7 +117,10 @@
    "ai.gftd.apps.syosetsuka.composeWork" {:assistant :compose_work :handler compose-work}
    "ai.gftd.apps.syosetsuka.generateEpisode" {:assistant :generate_episode :handler generate-episode}
    "ai.gftd.apps.syosetsuka.continueSerialization" {:assistant :continue_serialization :handler continue-serialization}
-   "ai.gftd.apps.syosetsuka.produce" {:assistant :produce :handler produce}})
+   "ai.gftd.apps.syosetsuka.produce" {:assistant :produce :handler produce}
+   ;; §7 kotoba sovereign gate (durable store verification, ADR-2606071600 §7)
+   "ai.gftd.apps.syosetsuka.verifyStore" {:assistant :verify_store
+                                          :handler verify-store/handler}})
 
 (defn nsids [registry] (vec (sort (keys registry))))
 
