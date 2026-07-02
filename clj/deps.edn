@@ -1,11 +1,20 @@
 {:paths ["src" "resources"]
  :deps {org.clojure/clojure {:mvn/version "1.12.0"}
+        ;; shousetsu craft lib (ADR-2607023000) — the serialized-fiction
+        ;; vocabulary split out of this repo's old syosetsuka.edn.
+        io.github.kotoba-lang/shousetsu {:git/url "https://github.com/kotoba-lang/shousetsu"
+                                         :git/sha "179985f5c755218ce4a6b1e4a5e08f76f207ee05"}
         http-kit/http-kit   {:mvn/version "2.8.0"}
         metosin/reitit-ring {:mvn/version "0.7.2"}
         ring/ring-core      {:mvn/version "1.12.2"}
         metosin/jsonista    {:mvn/version "0.3.11"}}
  :aliases
- {:run {:main-opts ["-m" "syosetsuka.server"]}
+ {;; Workspace development — use the local lib checkout (no git fetch).
+  :dev
+  {:override-deps
+   {io.github.kotoba-lang/shousetsu {:local/root "../../../kotoba-lang/shousetsu"}}}
+
+  :run {:main-opts ["-m" "syosetsuka.server"]}
   :test {:extra-paths ["test"]
          :extra-deps {io.github.cognitect-labs/test-runner
                       {:git/tag "v0.5.1" :git/sha "dfb30dd"}}
