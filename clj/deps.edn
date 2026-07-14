@@ -9,7 +9,7 @@
         io.github.kotoba-lang/langchain {:git/sha "c7943d7542f28242a654ff3e0c37100b48a9417d"}
         ;; host-crypto-free 純 cljc SHA-256 — cacao の canonical-graph CID /
         ;; did:key を JVM/cljs/SCI/WASM どこでも同一に計算する (ADR-2607012300)。
-        io.github.com-junkawasaki/sha256d-clj {:git/sha "5fd4e64d0fc5a616b798edbca7327da33c78eb02"}
+        io.github.kotoba-lang/sha256d {:git/sha "5fd4e64d0fc5a616b798edbca7327da33c78eb02"}
         http-kit/http-kit   {:mvn/version "2.8.0"}
         metosin/reitit-ring {:mvn/version "0.7.2"}
         ring/ring-core      {:mvn/version "1.12.2"}
@@ -20,7 +20,7 @@
   {:override-deps
    {io.github.kotoba-lang/shousetsu {:local/root "../../../kotoba-lang/shousetsu"}
     io.github.kotoba-lang/langchain  {:local/root "../../../kotoba-lang/langchain"}
-    io.github.com-junkawasaki/sha256d-clj {:local/root "../../../com-junkawasaki/sha256d-clj"}}}
+    io.github.kotoba-lang/sha256d {:local/root "../../../kotoba-lang/sha256d"}}}
 
   :run {:main-opts ["-m" "syosetsuka.server"]}
   :test {:extra-paths ["test"]
