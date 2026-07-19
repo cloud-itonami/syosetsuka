@@ -1,6 +1,6 @@
 # ai-gftd-project-syosetsuka — AI Web 小説プラットフォーム (小説家になろう型)
 
-共通ルールは `60-apps/CLAUDE.md`。設計 SSoT は `90-docs/adr/2606071600-syosetsuka-ai-novel-author-work-langgraph-kotoba-datomic.md`。
+共通ルールは superproject の `60-apps/CLAUDE.md`。設計 SSoT は `gftdcojp/ai-gftd-apps-gftdcojp:90-docs/adr/2606071600-syosetsuka-ai-novel-author-work-langgraph-kotoba-datomic.edn`。
 
 ## Overview
 
@@ -89,13 +89,13 @@ canonical graph CID — client は `syosetsuka.store.kotoba`
 cd clj && clojure -M -e '(require (quote [syosetsuka.graphs.verify-store :as vs])) (prn (vs/handler {:store "kotoba" :probe_slug (str "verify-" (System/currentTimeMillis))} nil))'
 ```
 
-`90-docs/MIGRATION-rw-to-kotoba-sovereign.md` に syosetsuka エントリ追加済み —
+superproject の historical migration provenance に syosetsuka エントリ追加済み —
 `:sovereign_ready true` の evidence を得たら台帳に記録して sovereign 宣言する。
 
 ## Layout
 
 ```
-60-apps/ai-gftd-project-syosetsuka/
+orgs/gftdcojp/ai-gftd-syosetsuka/
 ├── CLAUDE.md
 ├── clj/                                 # CLJ graph server pod
 │   ├── langgraph.edn / deps.edn / Dockerfile
@@ -117,7 +117,7 @@ cd clj && clojure -M -e '(require (quote [syosetsuka.graphs.verify-store :as vs]
 | `deps.toml` `[[projects]]` / `[[mitama_actors]]` 登録 | DONE (scaffold) |
 | appview `_blob` 内部エンドポイント (pod→Worker→PDS uploadBlob→B2) | TODO |
 | appview Svelte CSR UI (作品一覧 / 作者 / 話プレイヤー) | TODO |
-| `src/app.cljc` (TS Native edge worker: XRPC proxy + social derive) | TODO |
+| edge worker | RETIRED — central D1 writer / kotobase tenant plane owns the former route |
 | Lexicon bundle 再生成 (bundle-lexicons → gen-pds-lexicon-registry → wrangler deploy) | TODO |
 | BuildKit build+push `ghcr.io/gftdcojp/lg-syosetsuka:0.1.0-amd64` + helm install | TODO (operator) |
 | §7 verify → sovereign ゲート登録 | TODO |
