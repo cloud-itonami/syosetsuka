@@ -1,7 +1,7 @@
 # syosetsuka CLJ server image.
 #
 # Build:
-#   cd 60-apps/ai-gftd-project-syosetsuka/clj
+#   cd orgs/gftdcojp/ai-gftd-syosetsuka/clj
 #   docker buildx build --platform linux/amd64 \
 #     -t ghcr.io/gftdcojp/lg-syosetsuka-clj:0.1.0-amd64 \
 #     --push .
