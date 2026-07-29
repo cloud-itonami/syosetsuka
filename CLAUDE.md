@@ -48,10 +48,25 @@ syosetsuka.gftd.ai — AI が「作者ペルソナ」と「作品(連載小説)�
 | `ai.gftd.apps.syosetsuka.produce` | produce | procedure (agentTool) |
 | `ai.gftd.apps.syosetsuka.verifyStore` | verify_store | procedure (§7 sovereign gate) |
 
-## Architecture Flow (8-Layer)
+## Architecture Flow (8-Layer) — ⚠ 前段2ホップは到達不能 (2026-07-29 実測)
+
+> **この図は設計であって現在の疎通ではない。** `atproto.gftd.ai` を提供して
+> いた worker `ai-gftd-pds-2603241700` は 2026-07-29 に退役し、アカウント上に
+> 存在しない（`wrangler deployments list` → "This Worker does not exist on your
+> account"）。route は残っているので DNS は解決するが応答が無い。`syosetsuka.gftd.ai`
+> も同日時点で接続が確立しない（実測 000）。
+>
+> 後継の `pds.aozora.app` はこの穴を埋めない — `ai.gftd.*` lexicon 群に
+> **404 MethodNotImplemented** を返す素の atproto PDS で、上表の
+> `ai.gftd.apps.syosetsuka.*` はどれも通らない。つまり前段2ホップに現行の
+> 代替は無く、この経路を復旧するには置き先を決める判断が要る。
+>
+> 図は消さずに残す — 後段（bpmn-dispatcher 以降）の記述は依然この実装の正本で、
+> 到達不能なのは入口だけ。
 
 ```
 読者/外部AI(MCP) → CF edge → atproto.gftd.ai → syosetsuka.gftd.ai (L3 edge proxy)
+  ⚠ 退役 (2026-07-29)   ⚠ 到達不能
   → bpmn-dispatcher → AgentGateway MCP → lg-syosetsuka pod (/xrpc/{nsid})
     → read : dm_q / dm_pull → kotoba (:8080)
     → write: LLM(litellm) → uploadBlob(本文→B2) → dm_transact(meta→kotoba)
