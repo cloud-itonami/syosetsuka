@@ -1,6 +1,6 @@
 (ns syosetsuka.server
   (:require [clojure.edn :as edn]
-            [clojure.string :as str]
+            [kotoba.lang.text :as str]
             [jsonista.core :as j]
             [org.httpkit.server :as hk]
             [reitit.ring :as ring]

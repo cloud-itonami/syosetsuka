@@ -1,5 +1,5 @@
 (ns syosetsuka.core-test
-  (:require [clojure.edn :as edn]
+  (:require [kotoba.lang.text] [clojure.edn :as edn]
             [clojure.test :refer [deftest is]]
             [syosetsuka.edn :as se]
             [syosetsuka.graphs.registry :as reg]))
@@ -31,15 +31,15 @@
   (let [ops (se/work->ops {:work_id "work:test" :title "T" :author_id "author:a"
                            :status "serializing" :tags ["異世界" "内政"]})
         flat (map se/encode ops)]
-    (is (some #(clojure.string/includes? % ":nv/type \"Work\"") flat))
-    (is (some #(clojure.string/includes? % ":nv/id \"work:test\"") flat))
-    (is (= 2 (count (filter #(clojure.string/includes? % ":nv/tag") flat)))))
+    (is (some #(kotoba.lang.text/includes? % ":nv/type \"Work\"") flat))
+    (is (some #(kotoba.lang.text/includes? % ":nv/id \"work:test\"") flat))
+    (is (= 2 (count (filter #(kotoba.lang.text/includes? % ":nv/tag") flat)))))
   (let [flat (apply str (map se/encode (se/episode-meta->ops
                                          {:episode_id "episode:test:1" :work_id "work:test" :index 1
                                           :title "第一話" :body_blob_key "deadbeef"
                                           :char_count 3000 :status "published"})))]
-    (is (clojure.string/includes? flat ":ep/bodyBlobKey"))
-    (is (not (clojure.string/includes? flat ":ep/body ")))))
+    (is (kotoba.lang.text/includes? flat ":ep/bodyBlobKey"))
+    (is (not (kotoba.lang.text/includes? flat ":ep/body ")))))
 
 (deftest graph-scaffold-behavior
   (let [r (reg/build)
