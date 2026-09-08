@@ -1,5 +1,5 @@
 (ns syosetsuka.verify-store-test
-  (:require [clojure.string :as str]
+  (:require [kotoba.lang.text :as str]
             [clojure.test :refer [deftest is testing]]
             [jsonista.core :as json]
             [syosetsuka.cacao :as cacao]

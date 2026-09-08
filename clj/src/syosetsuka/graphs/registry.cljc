@@ -1,5 +1,5 @@
 (ns syosetsuka.graphs.registry
-  (:require [clojure.string :as str]
+  (:require [kotoba.lang.text :as str]
             [syosetsuka.edn :as se]
             [syosetsuka.graphs.verify-store :as verify-store]))
 

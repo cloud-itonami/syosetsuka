@@ -26,7 +26,7 @@
   CID from the CACAO's DID, so a self-minted CACAO over the actor's own db
   is authorized by construction. Persisted keys (.syosetsuka/identity.edn)
   are gitignored — NEVER commit them."
-  (:require [clojure.string :as str]
+  (:require [kotoba.lang.text :as str]
             [sha256d.core :as sha]
             #?(:clj [clojure.edn :as edn]))
   #?(:clj (:import [java.security KeyFactory KeyPairGenerator Signature]
