@@ -130,7 +130,7 @@ curl -sS -X POST http://localhost:8000/runs -H 'content-type: application/json' 
 ```
 
 コード上も `runs-handler` だけが `api-key-ok?` を通り、`xrpc-handler` は通らない
-（`clj/src/syosetsuka/server.cljc`）。**これが意図なのか漏れなのかは、この文書では
+（`clj/src/syosetsuka/server.kotoba`）。**これが意図なのか漏れなのかは、この文書では
 決めない** —— atproto の XRPC を公開面として開ける設計はありうる。ただし
 **現状の `LG_API_KEY` は「graph へのアクセス制御」ではなく「`/runs` という入口の
 制御」でしかない**、という事実だけは踏む前に知っておくこと。公開ホストに置く前に
