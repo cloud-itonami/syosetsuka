@@ -13,6 +13,6 @@ deterministic scaffolds and EDN/datom helpers only; it does not call kotoba/D1,
 B2, or an LLM.
 
 ```bash
-clojure -M:test
-PORT=8000 clojure -M:run
+kbb -M:test
+PORT=8000 kbb -M:run
 ```
