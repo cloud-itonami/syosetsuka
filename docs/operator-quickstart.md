@@ -14,7 +14,7 @@
 
 ```bash
 cd clj
-clojure -M:test
+kbb -M:test
 ```
 
 **期待**:
@@ -33,7 +33,7 @@ Ran 15 tests containing 76 assertions.
 ## S2. サーバを起こす
 
 ```bash
-PORT=8000 clojure -M:run
+PORT=8000 kbb -M:run
 ```
 
 以降は別端末から叩く（この文書では `PORT=8123` で実測した）。
@@ -106,7 +106,7 @@ curl -sS -X POST http://localhost:8000/runs -H 'content-type: application/json' 
 `/runs` だけで、`/xrpc/*` は素通りする。**
 
 ```bash
-LG_API_KEY=secret123 PORT=8000 clojure -M:run
+LG_API_KEY=secret123 PORT=8000 kbb -M:run
 ```
 
 実測（サーバは `LG_API_KEY=secret123` で起動している）:

@@ -43,8 +43,8 @@ Web 小説投稿プラットフォーム（小説家になろう型）の実装 
 
 ```bash
 cd clj
-clojure -M:test                    # Ran 15 tests containing 76 assertions. 0 failures, 0 errors.
-PORT=8000 clojure -M:run           # 別端末で: curl localhost:8000/ok
+kbb -M:test                    # Ran 15 tests containing 76 assertions. 0 failures, 0 errors.
+PORT=8000 kbb -M:run           # 別端末で: curl localhost:8000/ok
 ```
 
 ## 識別子

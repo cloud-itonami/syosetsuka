@@ -101,7 +101,7 @@ canonical graph CID — client は `syosetsuka.store.kotoba`
 書込を伴う）は owner 実行:
 
 ```bash
-cd clj && clojure -M -e '(require (quote [syosetsuka.graphs.verify-store :as vs])) (prn (vs/handler {:store "kotoba" :probe_slug (str "verify-" (System/currentTimeMillis))} nil))'
+cd clj && kbb -M -e '(require (quote [syosetsuka.graphs.verify-store :as vs])) (prn (vs/handler {:store "kotoba" :probe_slug (str "verify-" (System/currentTimeMillis))} nil))'
 ```
 
 superproject の historical migration provenance に syosetsuka エントリ追加済み —
