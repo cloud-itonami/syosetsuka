@@ -19,7 +19,7 @@ Web 小説投稿プラットフォーム（小説家になろう型）の実装 
 
 つまり **ローカルでは動き、公開経路では届かない。** 入口を復旧するには
 「どこに置くか」の判断が要る（技術的な詰まりではない）。前段 2 ホップの経緯と
-8 層アーキテクチャ図は [`CLAUDE.md`](CLAUDE.md) が正本 —— 図は設計であって
+8 層アーキテクチャ図は [`AGENTS.md`](AGENTS.md) が正本 —— 図は設計であって
 現在の疎通ではない、という但し書きごとそこに書いてある。
 
 ## repo の地図
@@ -27,7 +27,7 @@ Web 小説投稿プラットフォーム（小説家になろう型）の実装 
 | 場所 | 中身 |
 |---|---|
 | `clj/` | **実装の本体。** graph server（http-kit + reitit）、13 graph の registry、kotoba store client、CACAO、verify-store gate。詳細は [`clj/README.md`](clj/README.md) |
-| `CLAUDE.md` | 設計 SSoT へのポインタ、識別子（DID / handle / NSID）、ドメインモデル、sovereign ゲート、**到達不能ホップの実測記録** |
+| `AGENTS.md` | 設計 SSoT へのポインタ、識別子（DID / handle / NSID）、ドメインモデル、sovereign ゲート、**到達不能ホップの実測記録** |
 | `schema.edn` | datom schema |
 | `appview/` | appview 側の JSON-LD |
 | `edn-datomize.bb` | EDN → datom 変換 |
@@ -58,4 +58,4 @@ PORT=8000 kbb -M:run           # 別端末で: curl localhost:8000/ok
 
 作者は DID actor **ではない** —— kotoba datom entity であって、app DID
 1 つ（上記）が全作者を所有する。この区別は設計上の判断なので
-`CLAUDE.md` の該当節を読んでから触ること。
+`AGENTS.md` の該当節を読んでから触ること。

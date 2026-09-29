@@ -146,5 +146,5 @@ curl -sS -X POST http://localhost:8000/runs -H 'content-type: application/json' 
   ここで確かめられるのは**ローカルの runtime だけ**（README の表を参照）。
 - **kotoba / B2 / LLM に本当に書けるか。** 書かない。`verify_store` graph は
   その round-trip を実測するための gate だが、実測先（kotobase.net の tenant
-  Datom plane）への疎通は別途要る。設計上の位置づけは `CLAUDE.md` の
+  Datom plane）への疎通は別途要る。設計上の位置づけは `AGENTS.md` の
   「kotoba sovereign ゲート」節。

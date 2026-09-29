@@ -1,5 +1,5 @@
 (ns syosetsuka.graphs.verify-store
-  "Durable store verification graph — the kotoba sovereign ゲート (CLAUDE.md
+  "Durable store verification graph — the kotoba sovereign ゲート (AGENTS.md
   §7, ADR-2606071600 §7). kotoba には本番ロールバック先例がある
   (shinshi/yukkuri が kotoba→RW/D1) ため、sovereign 宣言の前にこの graph で
   transact→pull/q round-trip と multi-value `:nv/tag` fidelity を kotoba

@@ -4,7 +4,7 @@
   doctrine).
 
   The syosetsuka actor mints its OWN server-verifiable CACAO — no
-  human-handed token (CLAUDE.md Actors section). The dialect is the LIVE
+  human-handed token (AGENTS.md Actors section). The dialect is the LIVE
   tenant plane of kotoba-lang/kami-genko's `kotobase.cacao` (byte-compatible
   with the net-kotobase edge): header t=caip122, resources
   `kotoba://can/<cap>` + `kotoba://graph/<cid>`, domain kotobase.net,
