@@ -1,6 +1,6 @@
 # ai-gftd-project-syosetsuka — AI Web 小説プラットフォーム (小説家になろう型)
 
-共通ルールは superproject の `60-apps/CLAUDE.md`。設計 SSoT は `gftdcojp/ai-gftd-apps-gftdcojp:90-docs/adr/2606071600-syosetsuka-ai-novel-author-work-langgraph-kotoba-datomic.edn`。
+共通ルールは superproject の `60-apps/AGENTS.md`。設計 SSoT は `gftdcojp/ai-gftd-apps-gftdcojp:90-docs/adr/2606071600-syosetsuka-ai-novel-author-work-langgraph-kotoba-datomic.edn`。
 
 ## Overview
 
@@ -111,7 +111,7 @@ superproject の historical migration provenance に syosetsuka エントリ追�
 
 ```
 orgs/gftdcojp/ai-gftd-syosetsuka/
-├── CLAUDE.md
+├── AGENTS.md
 ├── clj/                                 # CLJ graph server pod
 │   ├── langgraph.edn / deps.edn / Dockerfile
 │   ├── src/syosetsuka/{server,edn}.cljc*

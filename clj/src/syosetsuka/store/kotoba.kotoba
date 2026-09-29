@@ -7,7 +7,7 @@
   WASM) inject {:http-fn :json-write :json-read :identity} via `api` opts or
   `set-default-opts!`.
 
-  Auth is CACAO self-issued (CLAUDE.md Actors section): the actor loads or
+  Auth is CACAO self-issued (AGENTS.md Actors section): the actor loads or
   creates its own Ed25519 identity (.syosetsuka/identity.edn on the JVM,
   gitignored; other hosts pass an identity built with
   syosetsuka.cacao/identity-from-signer) and mints per-op CACAOs —
